@@ -624,51 +624,14 @@ VPS 103.153.72.209])
 
 ## Repository Structure
 
-```text
-Pharmatech-showcase/
-├── .gitignore
-├── README.md
-├── system-flow.html
-│
-├── assets/
-│   └── .gitkeep
-│
-├── docs/
-│   ├── api/
-│   │   └── sample-endpoints.md
-│   │
-│   ├── demo/
-│   │   ├── demo-link.md
-│   │   └── video-link.md
-│   │
-│   ├── deployment/
-│   │   └── tech-stack.md
-│   │
-│   ├── diagrams/
-│   │   ├── README.md
-│   │   └── erd.png
-│   │
-│   ├── features/
-│   │   ├── admin-features.md
-│   │   ├── client-features.md
-│   │   ├── recruitment-features.md
-│   │   └── service-and-purchase.md
-│   │
-│   └── screenshots/
-│       ├── README.md
-│       ├── about-page.png
-│       ├── career-dashboard.png
-│       ├── home-hero.png
-│       ├── order-history-admin.png
-│       ├── product-detail.png
-│       ├── quote-management.png
-│       └── service-page.png
-│
-└── portfolio/
-    ├── challenges-and-solutions.md
-    ├── project-summary.md
-    └── responsibilities.md
-```
+- `system-flow.html`: full interactive system flow documentation
+- `docs/screenshots`: UI screenshots used in this showcase
+- `docs/features`: feature summaries for client, admin, recruitment, and service workflows
+- `docs/api`: public-facing route and API notes
+- `docs/demo`: links for live demo and video demo
+- `docs/deployment`: stack and deployment notes
+- `docs/diagrams`: ERD image and diagram notes
+- `portfolio`: project summary, responsibilities, and technical reflections
 
 ## Private Source Code Note
 
