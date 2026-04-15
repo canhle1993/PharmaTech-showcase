@@ -2,6 +2,8 @@
 
 Public showcase repository for the **PharmaTech** project.
 
+![PharmaTech Showcase Cover](assets/social-preview-cover.png)
+
 ## At A Glance
 
 **PharmaTech** is a full-stack pharmaceutical equipment platform that combines product showcase, quotation workflow, online purchasing, service request handling, recruitment management, and admin analytics in one system.
