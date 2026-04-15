@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PharmaTech — System Flow</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0b0f1e;
+      color: #e0e7ef;
+      padding: 36px 28px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 2.1rem;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #38bdf8, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 0.5px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-bottom: 44px;
+    }
+    .section {
+      background: #111827;
+      border: 1px solid #1e2a3a;
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 32px;
+      box-shadow: 0 6px 32px rgba(0, 0, 0, 0.45);
+    }
+    .section h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 22px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #1e2a3a;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .badge-client  { background: #0e2a45; color: #7dd3fc; }
+    .badge-admin   { background: #2a1445; color: #c4b5fd; }
+    .badge-system  { background: #0f2e1a; color: #6ee7b7; }
+    .badge-ops     { background: #3a200a; color: #fcd34d; }
+    .badge-payment { background: #2a1414; color: #fca5a5; }
+    .mermaid { width: 100%; overflow-x: auto; }
+  </style>
+</head>
+<body>
+
+<h1>⚗️ PharmaTech — System Flow</h1>
+<p class="subtitle">Angular 20 · NestJS 11 · MongoDB · Socket.IO · Stripe · OpenAI · OCR · GitHub Actions</p>
+
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<!-- 1. AUTHENTICATION FLOW -->
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<div class="section">
+  <h2>🔐 Authentication &amp; Access Control <span class="badge badge-system">System</span></h2>
+  <div class="mermaid">
+flowchart LR
+    A([Visitor opens site]) --> B{"Has account?"}
+    B -- No --> REG[Register page]
+    B -- Yes --> LOGIN[Login page]
+
+    REG --> REGFORM["Fill in name / email / password"]
+    REGFORM --> RVAL{"Validate input"}
+    RVAL -- Invalid --> REG
+    RVAL -- Valid --> CREATEACC["Create account\nbcrypt hash password\nrole = user"]
+    CREATEACC --> USERDASH([User dashboard])
+
+    LOGIN --> CRED["Submit credentials"]
+    CRED --> LOCKCHECK{"Account locked?"}
+    LOCKCHECK -- "Yes (5 min)" --> LOCKMSG["Show lock message\n& remaining time"]
+    LOCKCHECK -- No --> AUTHCHECK{"Verify password\nbcrypt compare"}
+    AUTHCHECK -- Fail --> FAILCOUNT["Increment failedAttempts"]
+    FAILCOUNT --> LIMIT{"failedAttempts >= 5?"}
+    LIMIT -- Yes --> LOCK["Lock account 5 min\nlockedUntil = now + 5m"]
+    LIMIT -- No --> LOGIN
+    AUTHCHECK -- Success --> RESET["Reset failedAttempts = 0"]
+    RESET --> ROLE{"Check role"}
+    ROLE -- user --> USERDASH
+    ROLE -- admin --> ADMINDASH([Admin dashboard])
+
+    LOGIN --> FORGOT["Forgot password?"]
+    FORGOT --> OTP["Send OTP to email"]
+    OTP --> VERIFY["Verify OTP code"]
+    VERIFY -- Invalid --> OTP
+    VERIFY -- Valid --> NEWPW["Set new password"]
+    NEWPW --> LOGIN
+
+    style USERDASH fill:#0e2a45,color:#7dd3fc,stroke:#38bdf8
+    style ADMINDASH fill:#2a1445,color:#c4b5fd,stroke:#a78bfa
+    style LOCK fill:#3a1414,color:#fca5a5,stroke:#f87171
+    style CREATEACC fill:#0f2e1a,color:#6ee7b7,stroke:#34d399
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<!-- 2. CUSTOMER SHOPPING FLOW -->
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<div class="section">
+  <h2>🛍️ Customer Shopping &amp; Order Flow <span class="badge badge-client">Client</span></h2>
+  <div class="mermaid">
+flowchart TD
+    HOME([Home page]) --> BANNER["Hero banner\n& featured categories"]
+    HOME --> SHOP[Browse shop]
+    HOME --> ABOUT[About us]
+    HOME --> SERVICE[Services]
+    HOME --> CAREER[Careers]
+    HOME --> CONTACT[Contact]
+
+    SHOP --> FILTER["Filter by category"]
+    FILTER --> LIST["Product list"]
+    LIST --> DETAIL["Product detail\nspecs / price / stock / gallery"]
+    DETAIL --> WISH["Add to wishlist"]
+    DETAIL --> CART["Add to cart"]
+    DETAIL --> QUOTE["Request a quote\nSubmit inquiry form"]
+
+    CART --> CARTVIEW["Cart page\nreview items & quantities"]
+    CARTVIEW --> UPDATE["Update quantity\nor remove item"]
+    CARTVIEW --> CHECKOUT["Proceed to checkout\nEnter contact info"]
+
+    CHECKOUT --> DEPOSITCALC["Calculate deposit\n% configured by admin"]
+    DEPOSITCALC --> STRIPEUI["Stripe checkout\npay deposit amount"]
+    STRIPEUI --> WEBHOOK{"Stripe webhook\nresponse"}
+    WEBHOOK -- "Success" --> ORDERCREATE["Create order\nstatus = Deposit Paid"]
+    WEBHOOK -- "Cancelled" --> CHECKOUTFAIL["Payment cancelled\nReturn to cart"]
+
+    ORDERCREATE --> PROOFUP["Upload payment proof\nfor remaining balance"]
+    PROOFUP --> APPROVAL{"Admin review\napproval_status"}
+    APPROVAL -- "Approved" --> PAIDFULL["status = Paid in Full"]
+    APPROVAL -- "Rejected" --> REUPLOAD["Re-upload proof"]
+    PAIDFULL --> COMPLETE["Admin marks Completed"]
+
+    ORDERCREATE --> HISTORY["Order history\n& status tracking"]
+    HISTORY --> RETURNREQ["Submit return request"]
+
+    style ORDERCREATE fill:#0f2e1a,color:#6ee7b7,stroke:#34d399
+    style STRIPEUI fill:#3a200a,color:#fcd34d,stroke:#f59e0b
+    style CHECKOUTFAIL fill:#3a1414,color:#fca5a5,stroke:#f87171
+    style COMPLETE fill:#0e2a45,color:#7dd3fc,stroke:#38bdf8
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<!-- 3. ORDER LIFECYCLE STATE DIAGRAM -->
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<div class="section">
+  <h2>📦 Order Lifecycle <span class="badge badge-ops">Operations</span></h2>
+  <div class="mermaid">
+stateDiagram-v2
+    [*] --> Pending : Order placed (Stripe deposit paid)
+
+    Pending --> DepositApproved : Admin approves payment proof
+    Pending --> DepositRejected : Admin rejects payment proof
+    Pending --> Cancelled : Customer or admin cancels
+
+    DepositRejected --> Pending : Customer re-uploads proof
+
+    DepositApproved --> PaidInFull : Remaining payment completed & approved
+
+    PaidInFull --> Completed : Admin marks as fulfilled
+    Completed --> [*]
+
+    Cancelled --> DepositLost : No refund issued
+    Cancelled --> DepositRefunded : Admin issues refund
+    DepositLost --> [*]
+    DepositRefunded --> [*]
+
+    DepositApproved --> ReturnRequested : Customer raises return issue
+    PaidInFull --> ReturnRequested : Customer raises return issue
+    Completed --> ReturnRequested : Customer raises return issue
+    ReturnRequested --> ReturnResolved : Admin resolves
+    ReturnResolved --> [*]
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<!-- 4. RECRUITMENT & CAREER FLOW -->
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<div class="section">
+  <h2>💼 Recruitment &amp; Career Flow <span class="badge badge-client">Client</span></h2>
+  <div class="mermaid">
+flowchart TD
+    SEEKER([Job seeker]) --> JOBLIST["Browse job openings\n(title / department / area / type)"]
+    JOBLIST --> SAVE["Save job to watchlist"]
+    JOBLIST --> JOBDETAIL["Job detail\nrequirements / benefits / deadline"]
+    JOBDETAIL --> APPLY["Submit application\n(profile auto-fills from account)"]
+
+    APPLY --> PROFILECHECK{"Profile\ncomplete?"}
+    PROFILECHECK -- No --> EDITPROFILE["Fill in education\nexperience / skills / CV"]
+    EDITPROFILE --> APPLY
+    PROFILECHECK -- Yes --> APPDB[("application\ncollection")]
+
+    APPDB --> ADMVIEW["Admin reviews\napplication list"]
+    ADMVIEW --> FILTER["Filter by career / status"]
+    FILTER --> SETSTAT["Update application status\napplied / reviewed / accepted / rejected"]
+    SETSTAT --> EMAILNOTIF["Send email notification\nto candidate via Nodemailer"]
+    EMAILNOTIF --> CANDNOTIF([Candidate receives email])
+
+    ADMVIEW --> ANALYTICS["Career analytics dashboard"]
+    ANALYTICS --> CHARTS["Charts: applicant count\ngender / age / top skills / funnel"]
+
+    style APPDB fill:#1e2a3a,color:#94a3b8,stroke:#334155
+    style CANDNOTIF fill:#0e2a45,color:#7dd3fc,stroke:#38bdf8
+    style ANALYTICS fill:#2a1445,color:#c4b5fd,stroke:#a78bfa
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<!-- 5. PURCHASE WORKFLOW (B2B PROCESS) -->
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<div class="section">
+  <h2>🏭 B2B Purchase Workflow <span class="badge badge-client">Client</span></h2>
+  <div class="mermaid">
+flowchart LR
+    START([Customer interested\nin equipment]) --> INTAKE["Step 1: Customer Intake\nSubmit project requirements"]
+    INTAKE --> CONSULT["Step 2: Technical Consulting\nEngineer assessment & proposal"]
+    CONSULT --> URS["Step 3: URS Development\nUser Requirements Specification"]
+    URS --> CONTRACT["Step 4: Contract Signing\nFinalize terms & payment schedule"]
+    CONTRACT --> DELIVERY["Equipment delivery\n& installation"]
+    DELIVERY --> END([Project complete])
+
+    ADMIN([Admin]) --> MANAGE["Manage each step's\nbanner & content via CMS"]
+    MANAGE --> INTAKE
+    MANAGE --> CONSULT
+    MANAGE --> URS
+    MANAGE --> CONTRACT
+
+    style START fill:#0e2a45,color:#7dd3fc,stroke:#38bdf8
+    style END fill:#0f2e1a,color:#6ee7b7,stroke:#34d399
+    style ADMIN fill:#2a1445,color:#c4b5fd,stroke:#a78bfa
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<!-- 6. ADMIN MANAGEMENT OVERVIEW -->
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<div class="section">
+  <h2>⚙️ Admin Management Overview <span class="badge badge-admin">Admin</span></h2>
+  <div class="mermaid">
+flowchart TD
+    DASH([Admin Dashboard]) --> ACCT["Account Management\nview / lock / unlock users\ncreate admin accounts"]
+    DASH --> PROD["Product Management\nCRUD / main image / gallery\nsoft delete / recycle bin"]
+    DASH --> CAT["Category Management\nCRUD / assign to products"]
+    DASH --> STOCK["Stock Management\nQR code scan / update qty\nexport Excel"]
+    DASH --> ORDM["Order Management\napprove / reject proofs\nmark completed\nview all orders"]
+    DASH --> RETM["Return Management\nreview return requests\nresolve & close"]
+    DASH --> CARM["Career Management\npost / edit job listings\nset deadlines & requirements"]
+    DASH --> APMM["Application Management\nreview CVs / update status\nsend email feedback"]
+    DASH --> QUOTM["Quote Management\nread inquiries\nreply by email"]
+    DASH --> SUPP["Support Chat\nreal-time chat with customers\nAI assistant for auto-reply"]
+    DASH --> CONT["Content Management\nAbout / Contact / Banner\nHotline / Home categories"]
+    DASH --> SRVM["Service Pages CMS\nConsulting / Support / Upgrade\nMaintenance content"]
+    DASH --> SETT["System Settings\ndeposit % configuration"]
+
+    PROD --> EXPXL["Export product list\nto Excel (.xlsx)"]
+    STOCK --> QR["Generate QR code per product\nscan to update inventory"]
+    ORDM --> OCR["OCR scan payment proof\nauto-extract amount & date"]
+    SUPP --> AI["OpenAI chatbot\ncontext-aware responses"]
+    APMM --> CARANALYTICS["Analytics dashboard\napplicant funnel / skills / demographics"]
+
+    style DASH fill:#2a1445,color:#c4b5fd,stroke:#a78bfa
+    style AI fill:#0f2e1a,color:#6ee7b7,stroke:#34d399
+    style OCR fill:#3a200a,color:#fcd34d,stroke:#f59e0b
+    style QR fill:#0e2a45,color:#7dd3fc,stroke:#38bdf8
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<!-- 7. REAL-TIME COMMUNICATION FLOW -->
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<div class="section">
+  <h2>💬 Real-Time Communication &amp; AI <span class="badge badge-system">System</span></h2>
+  <div class="mermaid">
+flowchart LR
+    USER([Customer]) --> CHATUI["Chat widget\n(Angular component)"]
+    CHATUI --> SIO_CLIENT["Socket.IO client\nemit: send_message"]
+    SIO_CLIENT --> GATEWAY["NestJS Order / Chat Gateway\n@WebSocketGateway"]
+    GATEWAY --> MSGDB[("ChatThreadMessage\ncollection\nuserId / fromRole / msg")]
+    GATEWAY --> ADMINUI["Admin support dashboard\nreceives message in real-time"]
+    ADMINUI --> ADMREPLY["Admin types reply\nemit: admin_reply"]
+    ADMREPLY --> GATEWAY
+    GATEWAY --> SIO_CLIENT
+
+    USER2([Customer]) --> AI_WIDGET["AI chat bubble"]
+    AI_WIDGET --> APISVC["POST /api/ai/chat"]
+    APISVC --> OPENAI["OpenAI API\nGPT model\nContext: PharmaTech products & services"]
+    OPENAI --> AIRESP["AI response\nreturned to user"]
+
+    ORDEREVT["Order status changes"] --> ORDGW["Order WebSocket Gateway\nbroadcast: order_updated"]
+    ORDGW --> USERALERT["User sees live\nstatus notification"]
+
+    style GATEWAY fill:#1e2a3a,color:#94a3b8,stroke:#334155
+    style OPENAI fill:#0f2e1a,color:#6ee7b7,stroke:#34d399
+    style MSGDB fill:#1e2a3a,color:#94a3b8,stroke:#334155
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<!-- 8. PAYMENT FLOW (STRIPE + PROOF UPLOAD + OCR) -->
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<div class="section">
+  <h2>💳 Payment Flow — Stripe &amp; Proof Upload <span class="badge badge-payment">Payment</span></h2>
+  <div class="mermaid">
+flowchart TD
+    CHECKOUT([Checkout]) --> DEPSET["Fetch deposit setting\nGET /api/deposit-setting"]
+    DEPSET --> CALC["depositAmount = totalAmount * depositPercent / 100"]
+    CALC --> PI["POST /api/stripe/create-payment-intent\nstripeSecretKey, amount, currency"]
+    PI --> STRIPE_SDK["Stripe Checkout Session\n(redirected to Stripe hosted page)"]
+    STRIPE_SDK --> PAY{"Customer pays"}
+    PAY -- Success --> WEBHK["Stripe webhook\nPOST /api/stripe/webhook\nevent: payment_intent.succeeded"]
+    PAY -- Cancel --> CANCEL_URL["Redirect to /payment/cancel\nOrder remains Pending"]
+    WEBHK --> ORDERUPD["Update order\nstatus = Deposit Paid\npayment_id = Stripe ID"]
+    ORDERUPD --> EMAILCONF["Send order confirmation email\nNodemailer + Handlebars template"]
+    EMAILCONF --> CUST([Customer inbox])
+
+    ORDERUPD --> UPLOADPROOF["Customer uploads remaining\npayment proof image\nPOST /api/order/upload-proof/:id"]
+    UPLOADPROOF --> OCRAPI["Admin triggers OCR scan\nPOST /api/ocr/read\n(Hugging Face / vision model)"]
+    OCRAPI --> EXTRACTED["Extracted: amount, date, bank"]
+    EXTRACTED --> ADMAPPROVE{"Admin decision"}
+    ADMAPPROVE -- Approve --> PAID["status = Paid in Full\napproval_status = Approved"]
+    ADMAPPROVE -- Reject --> REJNOTIF["Notify customer\nRe-upload required"]
+
+    style STRIPE_SDK fill:#3a200a,color:#fcd34d,stroke:#f59e0b
+    style WEBHK fill:#3a200a,color:#fcd34d,stroke:#f59e0b
+    style PAID fill:#0f2e1a,color:#6ee7b7,stroke:#34d399
+    style CANCEL_URL fill:#3a1414,color:#fca5a5,stroke:#f87171
+    style OCRAPI fill:#2a1445,color:#c4b5fd,stroke:#a78bfa
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<!-- 9. DATABASE SCHEMA (ERD) -->
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<div class="section">
+  <h2>🗄️ Database Relationships (MongoDB Collections) <span class="badge badge-system">System</span></h2>
+  <div class="mermaid">
+erDiagram
+    Account {
+        ObjectId _id PK
+        string name
+        string email
+        string password
+        string roles
+        boolean is_active
+        int failedAttempts
+        date lockedUntil
+        string resume
+        array skills
+        array experience
+        array education
+    }
+    Product {
+        ObjectId _id PK
+        string name
+        string model
+        string description
+        string photo
+        array gallery
+        number price
+        number stock_quantity
+        string stock_status
+        array category_ids
+        boolean is_delete
+    }
+    Category {
+        ObjectId _id PK
+        string name
+        string description
+        string photo
+        boolean is_delete
+    }
+    Order {
+        ObjectId _id PK
+        ObjectId user_id FK
+        object user_info
+        number total_amount
+        number deposit_percent
+        number deposit_amount
+        number remaining_payment_amount
+        string status
+        string approval_status
+        string payment_proof_url
+        string payment_id
+    }
+    OrderDetails {
+        ObjectId _id PK
+        ObjectId order_id FK
+        ObjectId product_id FK
+        number quantity
+        number price
+        number total_price
+    }
+    Cart {
+        ObjectId _id PK
+        ObjectId user_id FK
+        ObjectId product_id FK
+        number quantity
+        number price
+    }
+    Wishlist {
+        ObjectId _id PK
+        ObjectId user_id FK
+        ObjectId product_id FK
+    }
+    Career {
+        ObjectId _id PK
+        string title
+        string department
+        string location
+        date expiration_date
+        array skills
+        array benefits
+        boolean is_active
+    }
+    Application {
+        ObjectId _id PK
+        ObjectId career_id FK
+        ObjectId user_id FK
+        string status
+    }
+    SavedJob {
+        ObjectId _id PK
+        ObjectId user_id FK
+        ObjectId career_id FK
+    }
+    Quote {
+        ObjectId _id PK
+        string firstName
+        string email
+        string message
+        string status
+        string replyMessage
+    }
+    ChatThreadMessage {
+        ObjectId _id PK
+        ObjectId userId FK
+        string fromRole
+        string msg
+        date createdAt
+    }
+    DepositSetting {
+        ObjectId _id PK
+        number deposit_percent
+    }
+    Banner {
+        ObjectId _id PK
+        string title
+        string imageUrl
+        boolean is_active
+    }
+
+    Account ||--o{ Order : "places"
+    Account ||--o{ Cart : "has"
+    Account ||--o{ Wishlist : "saves"
+    Account ||--o{ Application : "submits"
+    Account ||--o{ SavedJob : "bookmarks"
+    Account ||--o{ ChatThreadMessage : "sends"
+    Order ||--o{ OrderDetails : "contains"
+    Product ||--o{ OrderDetails : "referenced in"
+    Product ||--o{ Cart : "added to"
+    Product ||--o{ Wishlist : "saved in"
+    Product }o--o{ Category : "belongs to (category_ids)"
+    Career ||--o{ Application : "receives"
+    Career ||--o{ SavedJob : "bookmarked via"
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<!-- 10. CI/CD DEPLOYMENT FLOW -->
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<div class="section">
+  <h2>🚀 CI/CD Deployment Flow <span class="badge badge-system">System</span></h2>
+  <div class="mermaid">
+flowchart LR
+    DEV([Developer]) --> |"git push main"| GH["GitHub\nmain branch"]
+    GH --> |"trigger"| GHA["GitHub Actions\n.github/workflows/deploy.yml"]
+
+    GHA --> BUILD_BE["Build backend\nnpm run build (NestJS → dist/)"]
+    GHA --> BUILD_FE["Build frontend\nng build (Angular → dist/)"]
+
+    BUILD_BE --> ARCHIVE_BE["Create backend archive\npharmatech-source.tar.gz"]
+    BUILD_FE --> ARCHIVE_FE["Create frontend archive\npharmatech-frontend.tar.gz"]
+
+    ARCHIVE_BE --> RSYNC["rsync archives\nto VPS via SSH"]
+    ARCHIVE_FE --> RSYNC
+
+    RSYNC --> SCRIPT["Run deploy_server.sh\non production VPS"]
+    SCRIPT --> EXTRACT["Extract archives\nto /var/www/pharmatech/"]
+    EXTRACT --> INSTALL["npm install\n(backend dependencies)"]
+    INSTALL --> PM2["PM2 restart backend\nprocess: pharmatech-api\nport 3000"]
+    EXTRACT --> NGINX["Copy Angular build\nto Nginx web root\n/var/www/html/"]
+    NGINX --> RELOAD["nginx -s reload"]
+    PM2 --> LIVE([Live site\nVPS 103.153.72.209])
+    RELOAD --> LIVE
+
+    style GH fill:#1a1a2e,color:#94a3b8,stroke:#334155
+    style GHA fill:#2a1414,color:#fca5a5,stroke:#f87171
+    style PM2 fill:#0f2e1a,color:#6ee7b7,stroke:#34d399
+    style LIVE fill:#0e2a45,color:#7dd3fc,stroke:#38bdf8
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    securityLevel: 'loose',
+    themeVariables: {
+      primaryColor: '#1e293b',
+      primaryTextColor: '#e0e7ef',
+      primaryBorderColor: '#334155',
+      lineColor: '#4b6280',
+      secondaryColor: '#1e2a3a',
+      tertiaryColor: '#111827',
+      background: '#0b0f1e',
+      mainBkg: '#111827',
+      nodeBorder: '#334155',
+      clusterBkg: '#1e293b',
+      titleColor: '#e0e7ef',
+      edgeLabelBackground: '#1e293b',
+      fontFamily: 'Segoe UI, sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 20 },
+    er: { useMaxWidth: true },
+  });
+</script>
+</body>
+</html>
