@@ -1,5 +1,7 @@
 # PharmaTech Showcase
 
+![Angular](https://img.shields.io/badge/Angular-DD0031?style=flat-square&logo=angular&logoColor=white) ![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=flat-square&logo=nestjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white) ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white) ![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?style=flat-square&logo=socketdotio&logoColor=white) ![Stripe](https://img.shields.io/badge/Stripe-635BFF?style=flat-square&logo=stripe&logoColor=white) ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white) ![Nginx](https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white)
+
 Public showcase repository for the **PharmaTech** project.
 
 ![PharmaTech Showcase Cover](assets/social-preview-cover.png)
@@ -30,6 +32,7 @@ Public showcase repository for the **PharmaTech** project.
 - [Repository Structure](#repository-structure)
 - [Private Source Code Note](#private-source-code-note)
 - [Supporting Documents](#supporting-documents)
+- [Author](#author)
 
 ## Overview
 
@@ -664,3 +667,13 @@ If needed during an interview, I can walk through selected implementation detail
 - Project summary: [portfolio/project-summary.md](portfolio/project-summary.md)
 - Responsibilities: [portfolio/responsibilities.md](portfolio/responsibilities.md)
 - Challenges and solutions: [portfolio/challenges-and-solutions.md](portfolio/challenges-and-solutions.md)
+
+## Author
+
+**Lê Văn Cảnh** · Java Full-Stack Developer · Ho Chi Minh City, Vietnam
+
+- Portfolio: [canhle1993.github.io/canhle-portfolio](https://canhle1993.github.io/canhle-portfolio/)
+- Email: [aplevancanh1993@gmail.com](mailto:aplevancanh1993@gmail.com)
+- GitHub: [@canhle1993](https://github.com/canhle1993)
+
+Happy to walk through the private source code, architecture decisions and my part of the work in an interview.
